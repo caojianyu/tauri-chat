@@ -40,7 +40,7 @@ const getAccountInfo = async () => {
   const {
     data: { account, avatar },
   }: any = (
-    await fetch("https://zhiyunxiang.cn/app/getAccountInfo", {
+    await fetch("http://localhost:6503/app/getAccountInfo", {
       method: "GET",
       headers: {
         token: localStorage.getItem("token"),
@@ -55,7 +55,7 @@ const getAccountInfo = async () => {
 
 // websocket
 const initWebSocket = () => {
-  ws = new WebSocket(`wss://zhiyunxiang.cn/chat/${data.account}`);
+  ws = new WebSocket(`ws://localhost:6503/chat/${data.account}`);
 
   ws.onopen = () => {
     setInterval(() => {

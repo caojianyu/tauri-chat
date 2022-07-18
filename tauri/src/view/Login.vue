@@ -23,7 +23,7 @@ const closeWindow = () => {
 const login = async () => {
   // request login api.
   let { data: token }: any = (
-    await fetch("https://zhiyunxiang.cn/app/login", {
+    await fetch("http://localhost:6503/app/login", {
       method: "POST",
       body: Body.json(data.form),
     })
