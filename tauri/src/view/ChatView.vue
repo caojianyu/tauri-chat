@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeMount } from "vue";
+import { ref, reactive, onBeforeMount } from "vue";
 import { appWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/tauri";
 import { fetch } from "@tauri-apps/api/http";
@@ -21,18 +21,21 @@ const minimizeWindow = () => {
 };
 
 const closeWindow = () => {
-  // stop ffmpeg
   appWindow.close();
 };
 
+// dom
 const record: any = ref(null);
 const local: any = ref(null);
 const remote: any = ref(null);
 
 let ws: any = null;
-
 let pc: any = null;
 let webcamStream: any = null;
+
+onBeforeMount(() => {
+  getAccountInfo();
+});
 
 // methods
 const getAccountInfo = async () => {
@@ -40,7 +43,7 @@ const getAccountInfo = async () => {
   const {
     data: { account, avatar },
   }: any = (
-    await fetch("http://localhost:6503/app/getAccountInfo", {
+    await fetch("http://127.0.0.1:6503/app/get_account_info", {
       method: "GET",
       headers: {
         token: localStorage.getItem("token"),
@@ -53,48 +56,50 @@ const getAccountInfo = async () => {
   initWebSocket();
 };
 
-// websocket
+// init websocket
 const initWebSocket = () => {
-  ws = new WebSocket(`ws://localhost:6503/chat/${data.account}`);
+  ws = new WebSocket(`ws://127.0.0.1:6503/chat/${data.account}`);
 
   ws.onopen = () => {
     setInterval(() => {
-      sendToServer({ type: "heartbeat" });
+      sendToServer({
+        msg_type: "heartbeat",
+        receiver: "",
+        sender: "",
+        msg: "",
+        sender_avatar: "",
+      });
     }, 1000 * 60);
   };
 
   ws.onmessage = async (e: any) => {
     let msg = JSON.parse(e.data);
-    if (msg) {
-      // 接收消息类型1列表, 2接收用户消息
-      switch (msg.type) {
-        case "user-list":
-          data.userList = msg.userList;
-          break;
-        case "message":
-          // 1是发送 2是接收
-          msg.msgType = 2;
-          await invoke("save_chat_record", {
-            directory: data.account,
-            firstAccount: msg.sender,
-            secondAccount: msg.receiver,
-            jsonStr: JSON.stringify(msg),
-          });
-          await getChatRecord();
-          break;
-        case "video-offer": // Invitation and offer to chat
-          console.log("收到offer");
-          // init(false);
-          handleVideoOfferMsg(msg);
-          break;
-        case "video-answer": // Callee has answered our offer
-          console.log("收到answer");
-          handleVideoAnswerMsg(msg);
-          break;
-        case "new-ice-candidate": // A new ICE candidate has been received
-          handleNewICECandidateMsg(msg);
-          break;
-      }
+    switch (msg.msg_type) {
+      case "user-list":
+        data.userList = msg.user_list;
+        break;
+      case "message":
+        // 1.sender 2.receiver
+        msg.isSend = 2;
+        // save record to local file.
+        await invoke("save_chat_record", {
+          directory: data.account,
+          firstAccount: msg.sender,
+          secondAccount: msg.receiver,
+          jsonStr: JSON.stringify(msg),
+        });
+        // query record.
+        await getChatRecord();
+        break;
+      case "video-offer": // Invitation and offer to chat
+        handleVideoOfferMsg(msg);
+        break;
+      case "video-answer": // Callee has answered our offer
+        handleVideoAnswerMsg(msg);
+        break;
+      case "new-ice-candidate": // A new ICE candidate has been received
+        handleNewICECandidateMsg(msg);
+        break;
     }
   };
 
@@ -103,21 +108,23 @@ const initWebSocket = () => {
   };
 };
 
-const send = async () => {
-  if (!data.msg) {
+// click event, send message
+const sendMsg = async () => {
+  // the meassge and receiver can not be empty.
+  if (!data.msg || !data.receiver) {
     return;
   }
 
   let msg: any = {
-    type: "message",
+    msg_type: "message",
     msg: data.msg,
     receiver: data.receiver,
     sender: data.account,
-    senderAvatar: data.avatar,
+    sender_avatar: data.avatar,
   };
   sendToServer(msg);
 
-  msg.msgType = 1;
+  msg.isSend = 1;
   data.msg = "";
 
   await invoke("save_chat_record", {
@@ -128,7 +135,9 @@ const send = async () => {
   });
 
   await getChatRecord();
+};
 
+const scrollBar = () => {
   setTimeout(() => {
     record.value.scrollTo({
       top: record.value.scrollHeight,
@@ -139,31 +148,30 @@ const send = async () => {
 };
 
 const handleVideoOfferMsg = async (msg: any) => {
-  data.receiver = msg.account;
+  data.receiver = msg.sender;
 
   await videoCommunication(false);
 
-  console.log("收到offer设置远程描述");
-  let desc = new RTCSessionDescription(msg.sdp);
+  let desc = new RTCSessionDescription(JSON.parse(msg.msg));
   await pc.setRemoteDescription(desc);
 
   await pc.setLocalDescription(await pc.createAnswer());
   sendToServer({
-    type: "video-answer",
+    msg_type: "video-answer",
     receiver: data.receiver,
-    account: data.account,
-    sdp: pc.localDescription,
+    msg: JSON.stringify(pc.localDescription),
+    sender: data.account,
+    sender_avatar: "",
   });
 };
 
 const handleVideoAnswerMsg = async (msg: any) => {
-  console.log("收到远程描述");
-  let desc = new RTCSessionDescription(msg.sdp);
+  let desc = new RTCSessionDescription(JSON.parse(msg.msg));
   await pc.setRemoteDescription(desc).catch(reportError);
 };
 
 const handleNewICECandidateMsg = async (msg: any) => {
-  let candidate = new RTCIceCandidate(msg.candidate);
+  let candidate = new RTCIceCandidate(JSON.parse(msg.msg));
   try {
     await pc.addIceCandidate(candidate);
   } catch (err) {
@@ -187,9 +195,10 @@ const getChatRecord = async () => {
       data.records = JSON.parse(res);
     }
   });
-};
 
-const createPeerConnection = async () => {};
+  // record panel
+  scrollBar();
+};
 
 const handleICEConnectionStateChangeEvent = (event: any) => {
   console.log("*** ICE连接状态变为" + pc.iceConnectionState);
@@ -206,16 +215,16 @@ const handleSignalingStateChangeEvent = (event: any) => {
 const handleICECandidateEvent = (event: any) => {
   if (event.candidate) {
     sendToServer({
-      type: "new-ice-candidate",
+      msg_type: "new-ice-candidate",
       receiver: data.receiver,
-      account: data.account,
-      candidate: event.candidate,
+      msg: JSON.stringify(event.candidate),
+      sender: data.account,
+      sender_avatar: "",
     });
   }
 };
 
 const handleTrackEvent = (event: any) => {
-  console.log("触发handleTrackEvent事件");
   remote.value.srcObject = event.streams[0];
 };
 
@@ -225,6 +234,7 @@ const sendToServer = (msg: any) => {
 };
 
 const videoCommunication = async (isSender: boolean) => {
+  // open panel
   data.isOpenVideo = true;
 
   // Create an RTCPeerConnection which knows to use our chosen
@@ -241,26 +251,22 @@ const videoCommunication = async (isSender: boolean) => {
       },
     ],
   };
+
   pc = new RTCPeerConnection(iceServer);
 
   // Set up event handlers for the ICE negotiation process.
-
   pc.onicecandidate = handleICECandidateEvent;
-  // pc.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
-  // pc.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
-  // pc.onsignalingstatechange = handleSignalingStateChangeEvent;
+  pc.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
+  pc.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
+  pc.onsignalingstatechange = handleSignalingStateChangeEvent;
   // pc.onnegotiationneeded = handleNegotiationNeededEvent;
-  pc.ontrack = (event: any) => {
-    console.log("触发ontrack事件");
-    remote.value.srcObject = event.streams[0];
-  };
+  pc.ontrack = handleTrackEvent;
 
+  // get local camera
   webcamStream = await navigator.mediaDevices.getUserMedia({
     video: true,
     audio: false,
   });
-
-  console.log(webcamStream);
 
   local.value.srcObject = webcamStream;
 
@@ -269,6 +275,7 @@ const videoCommunication = async (isSender: boolean) => {
     pc.addTrack(track, webcamStream)
   );
 
+  // send offer
   if (isSender) {
     const offer = await pc.createOffer();
 
@@ -277,19 +284,15 @@ const videoCommunication = async (isSender: boolean) => {
     await pc.setLocalDescription(offer);
 
     // Send the offer to the remote peer.
-    console.log("发送方发送offer");
     sendToServer({
-      type: "video-offer",
+      msg_type: "video-offer",
       receiver: data.receiver,
-      account: data.account,
-      sdp: pc.localDescription,
+      msg: JSON.stringify(pc.localDescription),
+      sender: data.account,
+      sender_avatar: "",
     });
   }
 };
-
-onBeforeMount(() => {
-  getAccountInfo();
-});
 </script>
 
 <template>
@@ -336,19 +339,19 @@ onBeforeMount(() => {
       </div>
       <div ref="record" class="record">
         <div
-          :class="item.msgType == 1 ? 'self' : 'opposite'"
+          :class="item.isSend == 1 ? 'self' : 'opposite'"
           v-for="(item, index) in data.records"
           :key="index"
         >
-          <div v-if="item.msgType == 1" class="bubble-box">
+          <div v-if="item.isSend == 1" class="bubble-box">
             {{ item.msg }}
           </div>
           <img
             class="avatar"
-            :src="item.msgType == 1 ? data.avatar : item.senderAvatar"
+            :src="item.isSend == 1 ? data.avatar : item.sender_avatar"
             alt=""
           />
-          <div v-if="item.msgType == 2" class="bubble-box">
+          <div v-if="item.isSend == 2" class="bubble-box">
             {{ item.msg }}
           </div>
         </div>
@@ -356,7 +359,7 @@ onBeforeMount(() => {
       <div class="input">
         <i @click="videoCommunication(true)" class="iconfont icon-shipin"></i>
         <textarea v-model="data.msg" cols="30" rows="4"></textarea>
-        <button @click="send()" class="send-btn">发送</button>
+        <button @click="sendMsg()" class="send-btn">发送</button>
       </div>
     </div>
     <div v-if="data.isOpenVideo" class="video-box">

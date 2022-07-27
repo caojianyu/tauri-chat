@@ -1,0 +1,30 @@
+server:
+  port: 6503
+
+spring:
+  profiles:
+    active: dev
+  redis:
+    # redis数据库索引（默认为0）
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    password: 
+    lettuce:
+      pool:
+        # 连接池最大连接数（使用负值表示没有限制）默认8
+        max-active: 8
+        # 连接池最大阻塞等待时间（使用负值表示没有限制）默认-1
+        max-wait: -1
+        # 连接池中的最大空闲连接默认8
+        max-idle: 8
+        # 连接池中的最小空闲连接默认0
+        min-idle: 0
+
+zyx:
+  jwt:
+    # 加密秘钥
+    secret: 87h273d8w3g89ys8r239ywesoiuqwjlk23s892hks
+    # token有效时长，7天，单位秒
+    expire: 604800
+    header: authorization

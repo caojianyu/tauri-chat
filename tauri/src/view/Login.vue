@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { reactive } from "vue";
 import { appWindow } from "@tauri-apps/api/window";
 import { fetch, Body } from "@tauri-apps/api/http";
-import { invoke } from "@tauri-apps/api/tauri";
 import { WebviewWindow } from "@tauri-apps/api/window";
 
 const data = reactive({
   form: {
-    account: "cjy11",
+    id: "",
+    account: "cjy15",
     password: "123456",
+    avatar: "",
   },
 });
 
@@ -23,7 +24,7 @@ const closeWindow = () => {
 const login = async () => {
   // request login api.
   let { data: token }: any = (
-    await fetch("http://localhost:6503/app/login", {
+    await fetch("http://127.0.0.1:6503/app/login", {
       method: "POST",
       body: Body.json(data.form),
     })

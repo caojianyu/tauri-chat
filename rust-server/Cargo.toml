@@ -1,0 +1,19 @@
+[package]
+name = "chat_server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "0.13"
+actix-web = "4"
+actix-web-actors = "4.1"
+
+jsonwebtoken = "8"
+serde = "1"
+serde_json = "1"
+futures = "0.3"
+
+redis = "0.21.5"
+uuid = { version = "0.7", features = ["serde", "v4"] }
