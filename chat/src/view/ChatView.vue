@@ -249,6 +249,7 @@ onMounted(() => {
       justify-content: flex-start;
       margin: 5px 0;
       > div {
+        word-break: break-word;
         padding: 10px;
         border-bottom-left-radius: 4px;
         border-bottom-right-radius: 4px;

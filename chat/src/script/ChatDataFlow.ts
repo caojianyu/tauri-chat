@@ -94,7 +94,7 @@ const initWebSocket = () => {
         break;
       case MsgType.HANG_UP:
         // 挂断，通过接收状态来关闭某个窗口
-        if (acceptStatus.value) {
+        if (data.msg) {
           emit(EventType.VIDEO_CHAT, data);
         } else {
           emit(EventType.VIDEO_SELECTION, data);
@@ -184,15 +184,17 @@ const handleVideoOfferMsg = async (data: Record<string, any>) => {
         });
         break;
       case MsgType.ACCEPT_STATUS:
-        acceptStatus.value = payload.msg;
         if (payload.msg) {
+          acceptStatus.value = payload.msg;
           // 接受则打开视频界面
           videoCall(false, data);
         } else {
-          msgObj.msgType = MsgType.HANG_UP;
-          msgObj.receiver = data.sender;
           // 向请求方发送挂断的消息
-          sendToServer(msgObj);
+          sendToServer({
+            msgType: MsgType.HANG_UP,
+            receiver: data.sender,
+            msg: acceptStatus.value
+          });
         }
 
         // 不管接受还是挂断都解除监听并关闭界面，因为此次会话已经结束
@@ -207,7 +209,7 @@ const handleVideoOfferMsg = async (data: Record<string, any>) => {
  * 
  * @param data 传输的json数据对象
  */
-const sendToServer = (data: Record<string, string>) => {
+const sendToServer = (data: Record<string, any>) => {
   const json = JSON.stringify(data);
   ws.send(json);
 }

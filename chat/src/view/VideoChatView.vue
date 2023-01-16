@@ -3,7 +3,6 @@ import { ref, reactive, onBeforeMount } from "vue";
 import { minimizeWindow, closeWindow } from "../common/WindowEvent";
 import { emit, listen } from "@tauri-apps/api/event";
 import { EventType, MsgType } from "../common/Constans";
-import { appWindow } from "@tauri-apps/api/window";
 
 /** webrtc连接对象 */
 let pc: RTCPeerConnection;
@@ -205,7 +204,7 @@ const videoCall = async (isSender: boolean) => {
 const hangUp = () => {
   msgObj.msgType = MsgType.HANG_UP;
   emit(EventType.CHAT_A, msgObj);
-  appWindow.close();
+  handleHangUpMsg();
 };
 
 /** 发送消息到主界面，由主界面发送至服务器，总线型传输 */
