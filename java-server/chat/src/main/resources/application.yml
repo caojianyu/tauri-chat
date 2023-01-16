@@ -1,0 +1,45 @@
+server:
+  tomcat:
+    uri-encoding: utf-8
+    connection-timeout: 5000ms
+  port: 6503
+
+spring:
+  profiles:
+    active: dev
+  redis:
+    # redis数据库索引（默认为0）
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    lettuce:
+      pool:
+        # 连接池最大连接数（使用负值表示没有限制）默认8
+        max-active: 8
+        # 连接池最大阻塞等待时间（使用负值表示没有限制）默认-1
+        max-wait: -1
+        # 连接池中的最大空闲连接默认8
+        max-idle: 8
+        # 连接池中的最小空闲连接默认0
+        min-idle: 0
+
+mybatis-plus:
+  # 指定sql映射文件位置
+  mapper-locations: classpath:mapper/chat/*.xml
+  type-aliases-package: cn.zyx.chat.entity
+  configuration:
+    # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete  # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+
+zyx:
+  jwt:
+    # 加密秘钥
+    secret: 87h273d8w3g89ys8r239ywesoiuqwjlk23s892hks
+    # token有效时长，7天，单位秒
+    expire: 604800
+    header: authorization

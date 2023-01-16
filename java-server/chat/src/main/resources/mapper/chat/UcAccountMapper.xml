@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.zyx.chat.mapper.UcAccountMapper">
+
+
+    <select id="queryFriends" resultType="cn.zyx.chat.entity.UcAccount">
+        SELECT
+            a.id,
+            a.account,
+            a.salt,
+            a.nickname,
+            a.avatar
+        FROM
+            uc_account a
+            INNER JOIN uc_account_relation b ON a.id = b.account_id
+            OR a.id = b.friend_id
+        WHERE
+            ( b.account_id = #{accountId} OR b.friend_id = #{accountId} )
+            AND a.id != #{accountId}
+    </select>
+</mapper>
