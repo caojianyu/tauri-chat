@@ -55,7 +55,7 @@ class Request {
         });
 
         const { code, msg } = response.data;
-        if (code === 401) {
+        if (code == 401) {
             // token不能为空，也有可能失效
             // 清除本地token
             localStorage.removeItem('token');

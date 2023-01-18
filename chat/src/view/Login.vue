@@ -17,8 +17,8 @@ const requestLogin = async () => {
   // 登录
   const token = (await login(user)).data;
   if (!token) {
-    // 提示用户
-    message("登录失败", { title: "提示", type: "error" });
+    // 告诉开发者，未生成token
+    console.log("The token is null.")
     return;
   }
 
