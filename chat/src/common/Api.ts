@@ -7,7 +7,7 @@ import request from './Request'
  * @returns 
  */
 export const login = (params: Record<string, any>) => {
-    return request.request({
+    return request.request<string>({
         url: '/login',
         method: 'POST',
         data: params,
@@ -15,8 +15,8 @@ export const login = (params: Record<string, any>) => {
 }
 
 /** 获取账户信息 */
-export const getUserInfo = () => {
-    return request.request({
+export const getUserInfo = <T>() => {
+    return request.request<T>({
         url: '/getUserInfo',
         method: 'GET',
     })
@@ -24,7 +24,7 @@ export const getUserInfo = () => {
 
 /** 获取好友列表 */
 export const getUserList = () => {
-    return request.request({
+    return request.request<Record<string, any>[]>({
         url: '/getUserList',
         method: 'GET',
     })

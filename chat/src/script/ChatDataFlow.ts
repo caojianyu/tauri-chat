@@ -47,7 +47,7 @@ const init = async () => {
   record = instance?.refs.record as HTMLDivElement
 
   // 获取用户信息
-  const { account, nickname, avatar } = (await getUserInfo()).data;
+  const { account, nickname, avatar } = (await getUserInfo<typeof user>()).data;
   // 赋值用户信息
   // 初始化消息发送者
   user.account = msgObj.sender = account;
