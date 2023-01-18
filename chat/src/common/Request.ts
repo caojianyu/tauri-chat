@@ -2,6 +2,10 @@
 import { getClient, HttpVerb, Body, ResponseType } from "@tauri-apps/api/http";
 import { message } from '@tauri-apps/api/dialog';
 
+/** 数据类型 */
+type Data = string | number | boolean | [];
+/** 响应类型 */
+type Res = { code: number, data: Data, msg: string }
 
 /**
  * 请求相关
@@ -25,7 +29,7 @@ class Request {
      * @param params 请求相关参数
      * @returns 
      */
-    async request(params: { url: string, method: HttpVerb, query?: Record<string, any>, data?: Record<string, any>, headers?: Record<string, any> }) {
+    async request(params: { url: string, method: HttpVerb, query?: Record<string, any>, data?: Record<string, any>, headers?: Record<string, Data> }) {
         // 基础请求参数
         const url = params.url || '';
         const method = params.method || 'GET';
@@ -38,21 +42,21 @@ class Request {
             headers.token = token;
         }
 
-        const withBaseURL = url.includes('http://');
+        const withBaseURL = url.indexOf("http") == 0;
         // 请求路径
         const requestURL = withBaseURL ? url : this.baseURL + url;
 
         const client = await getClient();
-        const response = await client.request({
+        const response = await client.request<Res>({
             method,
             url: requestURL,
             query,
             body: Body.json(data),
             headers,
             responseType: ResponseType.JSON
-        }) as Record<string, any>;
+        });
 
-        const code = response.data.code as number;
+        const code = response.data.code;
         if (code === 0) {
             return response.data;
         } else if (code === 401) {
@@ -66,6 +70,7 @@ class Request {
     }
 }
 
+/** 创建请求对象 */
 const request = new Request({
     baseURL: import.meta.env.VITE_APP_BASE_URL
 })
