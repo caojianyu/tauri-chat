@@ -2,10 +2,8 @@
 import { getClient, HttpVerb, Body, ResponseType } from "@tauri-apps/api/http";
 import { message } from '@tauri-apps/api/dialog';
 
-/** 数据类型 */
-type Data = string | number | boolean | [];
 /** 响应类型 */
-type Res = { code: number, data: Data, msg: string }
+type Res = { code: number, data: Record<string, any>, msg: string }
 
 /**
  * 请求相关
@@ -29,7 +27,7 @@ class Request {
      * @param params 请求相关参数
      * @returns 
      */
-    async request(params: { url: string, method: HttpVerb, query?: Record<string, any>, data?: Record<string, any>, headers?: Record<string, Data> }) {
+    async request(params: { url: string, method: HttpVerb, query?: Record<string, any>, data?: Record<string, any>, headers?: Record<string, any> }) {
         // 基础请求参数
         const url = params.url || '';
         const method = params.method || 'GET';
